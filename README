@@ -1,0 +1,93 @@
+一.简单介绍(Helm-Push): 
+
+    1.helm3.0+以上版本,不再支持helm push推送,需通过在线安装push插件或OCI方式来实现,但基本都需依
+    赖镜像仓库；
+
+    2.如果想直接通过nginx来作为helm仓库,在内网环境下是不是简单又高效,但不足之处需手动拷贝chart包
+    到nginx服务器,再创建一个index.yaml索引文件,此时才可以helm pull拉取chart包到项目环境;
+
+    3.为了解决以上问题,go定制一个helm-push工具,实现一键同时进行版本记录提交、打包、推送、更新仓库
+    索引。
+
+二.Helm-Push的安装使用指南:
+
+    1.编译成二进制程序,以下是在vscode上编译安装,若在linux机器可不用set变量
+
+        set GOARCH=amd64
+        set GOOS=linux
+        go build -ldflags="-w -s" -o helm-push main.go 
+
+        提示: Release中提供已编译的helm-push二进制程序,若不方便编译可直接下载使用
+        https://github.com/CosmicBDry/helm-push/releases
+
+    2.将helm-push命令拷贝到项目环境的linux机器
+
+         ~]# chmod +x helm-push;mv ./helm-push /usr/bin/
+         ~]# helm-push --help
+            Helm Plugin, Charts push to remote helm repository
+            Usage:
+            helm-push [flags]
+
+            Flags:
+            -c, --content string   更新备注 (default "HELM更新")
+            -e, --encrypt string   密码加密并打印输出
+            -h, --help             help for helm-push
+            -p, --package string   推送至helm仓库的Chart包名称(一个Chart包对应一个目录)
+            -t, --tag string       Chart包发布版本 (default "1.0.0")
+            -u, --user string      提交用户 (default "Admin")
+            -v, --version          版本信息
+
+    3.确保helm仓库(nginx服务器)以及项目环境都有helm(3.0+)命令，且在${PATH}环境变量中(建议路径/usr/bin/helm)
+        
+        ~]# helm version
+
+    4.Chart包目录的Chart.yaml中必须包含以下注解部分
+        ~]# cat ./cloudnative/Chart.yaml
+        annotations: #(必须)
+    	    helm.http/path: /helm-repo/access  #(必须)，指定helm仓库http路径，即nginx的访问路径
+    	    helm.http/port: 80 #(必须)，指定helm仓库http启动端口
+    	    helm.push/plugin-enable: true #(必须)，启用helm-push插件
+    	    helm.sh/project: 云原生123  #(必须)，指定项目名称
+    	    helm.ssh/path: /usr/share/nginx/html/helm-repo/access #(必须)，指定远程helm仓库的ssh路径
+        apiVersion: v2
+        appVersion: V1.0.1
+        description: cloudnative
+        maintainers:
+    	    - email: xxx@163.com
+      	      name: zjhe
+        name: helm
+        type: application
+        version: v202503111531+1.0.1
+
+    5.helm仓库(即nginx服务)的ssh用户密码加密,作为第6步的"HELM_REPO_ATUH_TOKEN"
+        ~]# helm-push  --encrypt "^admin@#$"
+            A1F14A81C212EC61AB
+
+    6.导入以下环境变量到/etc/profile最底部
+        export HELM_REPO_HOST=10.0.0.10  #helm仓库的地址
+        export HELM_REPO_AUTH_USER=root  #helm仓库的ssh用户
+        export HELM_REPO_ATUH_TOKEN=A1F14A81C212EC61AB #ssh密码进行AES对称加密
+        ~]# source /etc/profile
+
+    7.helm-push推送chart至nginx远程helm仓库(注意必须在chart包同级目录下执行)
+
+        1)推送chart包至远程helm仓库(cloudnative目录即为chart包)
+        ~]# helm-push --package ./cloudnative --tag "1.0.1" --user "zjhe" --content "app服务镜像更新"
+
+        2)推送完后会生成以下文件,Release.info中记录用户提交的变更信息,同时保存tgz到远程helm仓库
+        ./cloudnative/Release.info
+        ./cloudnative-v202503111531+1.0.1.tgz
+
+        3)本地更新同步helm仓库的最新状态
+        ~]# helm repo update
+       
+        4)即可查看cloudnative这个chart包推送的最新版本
+        ~]# helm search repo cloudnative (--verions表查看所有版本)
+
+        补充: 1)中的--content选项为本次提交的变更信息,如果变更内容较多,可将内容写入文件,
+        再将文件内容导入提交，如下:
+        ~]# vim ./record
+        xxxxxxxxxxxxxxx
+        xxxxxxxxxxxxxxx
+        xxxxxxxxxxxxxxx
+        ~]# helm-push --package ./cloudnative --tag "1.0.1" --user "zjhe" --content "$(cat ./record)"
