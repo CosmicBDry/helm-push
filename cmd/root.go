@@ -37,8 +37,8 @@ var RootCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if AppVersion {
 			//1.打印工具的版本信息
-			fmt.Printf("Describe: %s\nGoVersion: %s\nAuthor: %s\nGithub: %s\n", "helm-push plugin(require helmV3.0+)",
-				"go1.20.14", "zhaojiehe", "CosmicBDry")
+			fmt.Printf("Describe: %s\nGoVersion: %s\nAuthor: %s\nAppVersion: %s\n", "helm-push plugin(require helmV3.0+)",
+				"go1.20.14", "zhaojiehe", "v1.0.1")
 			os.Exit(0)
 
 		} else if len(CipherPassword) > 0 {
@@ -174,6 +174,6 @@ func init() {
 	RootCmd.PersistentFlags().StringVarP(&CipherPassword, "encrypt", "e", "", "密码加密并打印输出")
 	RootCmd.PersistentFlags().StringVarP(&ChartDir, "package", "p", "", "推送至helm仓库的Chart包名称(一个Chart包对应一个目录)")
 	RootCmd.PersistentFlags().StringVarP(&ReleaseTag, "tag", "t", "1.0.0", "Chart包发布版本")
-	RootCmd.PersistentFlags().StringVarP(&Content, "content", "c", "HELM更新", "更新备注")
+	RootCmd.PersistentFlags().StringVarP(&Content, "content", "c", "HELM UPDATE", "更新备注")
 	RootCmd.PersistentFlags().StringVarP(&User, "user", "u", "Admin", "提交用户")
 }

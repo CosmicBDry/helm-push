@@ -1,15 +1,4 @@
-一.简单介绍(Helm-Push): 
-
-    1.helm3.0+以上版本,不再支持helm push推送,需通过在线安装push插件或OCI方式来实现,但基本都需依
-    赖镜像仓库；
-
-    2.如果想直接通过nginx来作为helm仓库,在内网环境下是不是简单又高效,但不足之处需手动拷贝chart包
-    到nginx服务器,再创建一个index.yaml索引文件,此时才可以helm pull拉取chart包到项目环境;
-
-    3.为了解决以上问题,go定制一个helm-push工具,实现一键同时进行版本记录提交、打包、推送、更新仓库
-    索引。
-
-二.Helm-Push的安装使用指南:
+Helm-Push的安装使用指南:
 
     1.编译成二进制程序,以下是在vscode上编译安装,若在linux机器可不用set变量
 
@@ -37,14 +26,14 @@
             -u, --user string      提交用户 (default "Admin")
             -v, --version          版本信息
 
-    3.确保helm仓库(nginx服务器)以及项目环境都有helm(3.0+)命令，且在${PATH}环境变量中(建议路径/usr/bin/helm)
+    3.确保helm仓库机器以及项目环境都有helm(v3.0+)命令，且在${PATH}环境变量中(建议路径/usr/bin/helm)
         
         ~]# helm version
 
     4.Chart包目录的Chart.yaml中必须包含以下注解部分
         ~]# cat ./cloudnative/Chart.yaml
         annotations: #(必须)
-    	    helm.http/path: /helm-repo/access  #(必须)，指定helm仓库http路径，即nginx的访问路径
+    	    helm.http/path: /helm-repo/access  #(必须)，指定helm仓库http路径
     	    helm.http/port: 80 #(必须)，指定helm仓库http启动端口
     	    helm.push/plugin-enable: true #(必须)，启用helm-push插件
     	    helm.sh/project: 云原生123  #(必须)，指定项目名称
